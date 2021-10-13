@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    hikari:
+      batch:
+        jdbc-url: jdbc:mysql://host:3306/batch
+        username: root
+        password: password
+      demo:
+        jdbc-url: jdbc:mysql://host:3306/demo
+        username: root
+        password: password
+  batch:
+    job:
+      names: ${job.names:createArticleJob}
+  jpa:
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+logging:
+  level:
+    root: info
