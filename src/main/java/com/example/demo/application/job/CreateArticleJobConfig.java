@@ -13,7 +13,6 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
@@ -25,11 +24,9 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
 import java.time.LocalDateTime;
 
 @Configuration
-@RequiredArgsConstructor
 @Slf4j
 public class CreateArticleJobConfig {
 
@@ -68,7 +65,6 @@ public class CreateArticleJobConfig {
 
     @Bean
     public FlatFileItemReader<ArticleModel> createArticleReader() {
-        log.info("PARAM!!!!!!! {}", createArticleJobParam.getName());
         return new FlatFileItemReaderBuilder<ArticleModel>()
                 .name("createArticleReader")
                 .resource(new ClassPathResource("Articles.csv"))
