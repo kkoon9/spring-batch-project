@@ -2,16 +2,19 @@ spring:
   datasource:
     hikari:
       batch:
-        jdbc-url: jdbc:mysql://host:3306/batch
+        jdbc-url: jdbc:mysql://host/batch
+        driver-class-name: com.mysql.cj.jdbc.Driver
         username: root
-        password: password
+        password: wlffjt1akf
       demo:
-        jdbc-url: jdbc:mysql://host:3306/demo
-        username: root
-        password: password
+        jdbc-url: jdbc:mysql://host/demo
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        username: name
+        password: pw
   batch:
+    initialize-schema: always
     job:
-      names: ${job.names:createArticleJob}
+      names: ${job.names:createBoardJob}
   jpa:
     generate-ddl: true
     hibernate:

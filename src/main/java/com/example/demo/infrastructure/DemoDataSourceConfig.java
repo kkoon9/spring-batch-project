@@ -15,17 +15,17 @@ import javax.sql.DataSource;
 @Configuration
 public class DemoDataSourceConfig {
 
-  @Bean
-  @ConfigurationProperties(prefix = "spring.datasource.hikari.demo")
-  public DataSource demoDataSource() {
-    return DataSourceBuilder.create().type(HikariDataSource.class).build();
-  }
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource.hikari.demo")
+    public DataSource demoDataSource() {
+        return DataSourceBuilder.create().type(HikariDataSource.class).build();
+    }
 
-  @Bean
-  public PlatformTransactionManager demoTransactionManager(
-      @Qualifier("demoEntityManagerFactory") EntityManagerFactory demoEntityManagerFactory) {
-    JpaTransactionManager demoTransactionManager = new JpaTransactionManager();
-    demoTransactionManager.setEntityManagerFactory(demoEntityManagerFactory);
-    return demoTransactionManager;
-  }
+    @Bean
+    public PlatformTransactionManager demoTransactionManager(
+            @Qualifier("demoEntityManagerFactory") EntityManagerFactory demoEntityManagerFactory) {
+        JpaTransactionManager demoTransactionManager = new JpaTransactionManager();
+        demoTransactionManager.setEntityManagerFactory(demoEntityManagerFactory);
+        return demoTransactionManager;
+    }
 }

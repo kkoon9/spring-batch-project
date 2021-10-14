@@ -1,6 +1,5 @@
 package com.example.demo.domain.entity;
 
-
 import lombok.*;
 
 import javax.persistence.Entity;
@@ -15,8 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Article {
-
+public class OddBoard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;

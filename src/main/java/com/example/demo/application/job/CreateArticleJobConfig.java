@@ -1,10 +1,7 @@
 package com.example.demo.application.job;
 
-import com.example.demo.application.job.param.CreateArticleJobParam;
 import com.example.demo.application.model.ArticleModel;
 import com.example.demo.domain.entity.Article;
-import com.example.demo.domain.repository.ArticleRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -35,6 +32,8 @@ public class CreateArticleJobConfig {
     private final JdbcTemplate demoJdbcTemplate;
     private final EntityManagerFactory demoEntityManagerFactory;
 
+    private static final int CHUNK_SIZE = 10;
+
     public CreateArticleJobConfig(JobBuilderFactory jobBuilderFactory,
                                   StepBuilderFactory stepBuilderFactory,
                                   @Qualifier("demoJdbcTemplate") JdbcTemplate demoJdbcTemplate,
@@ -56,7 +55,7 @@ public class CreateArticleJobConfig {
     @Bean
     public Step createArticleStep() {
         return stepBuilderFactory.get("createArticleStep")
-                .<ArticleModel, Article>chunk(10)
+                .<ArticleModel, Article>chunk(CHUNK_SIZE)
                 .reader(createArticleReader())
                 .processor(createArticleProcessor())
                 .writer(createArticleWriter())
