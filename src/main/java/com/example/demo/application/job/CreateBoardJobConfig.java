@@ -2,124 +2,71 @@ package com.example.demo.application.job;
 
 import com.example.demo.application.model.BoardModel;
 import com.example.demo.domain.entity.Board;
-import com.example.demo.util.FileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.partition.support.MultiResourcePartitioner;
-import org.springframework.batch.core.partition.support.Partitioner;
-import org.springframework.batch.core.partition.support.TaskExecutorPartitionHandler;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.util.StringUtils;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import javax.persistence.EntityManagerFactory;
 import java.time.LocalDateTime;
 
 @Configuration
 @Slf4j
 public class CreateBoardJobConfig {
-    private static final int CHUNK_SIZE = 10;
-    private static final int GRID_SIZE = 10;
-    private static final int POOL_SIZE = 10;
+
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final JdbcTemplate demoJdbcTemplate;
+    private final EntityManagerFactory demoEntityManagerFactory;
 
+    private static final int CHUNK_SIZE = 10;
 
     public CreateBoardJobConfig(JobBuilderFactory jobBuilderFactory,
                                   StepBuilderFactory stepBuilderFactory,
-                                  @Qualifier("demoJdbcTemplate") JdbcTemplate demoJdbcTemplate) {
+                                  @Qualifier("demoJdbcTemplate") JdbcTemplate demoJdbcTemplate,
+                                  @Qualifier("demoEntityManagerFactory") EntityManagerFactory demoEntityManagerFactory) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.demoJdbcTemplate = demoJdbcTemplate;
+        this.demoEntityManagerFactory = demoEntityManagerFactory;
     }
 
     @Bean
-    public Job createBoardJob() throws Exception {
+    public Job createBoardJob() {
         return jobBuilderFactory.get("createBoardJob")
-                .start(createBoardManager())
+                .incrementer(new RunIdIncrementer())
+                .start(createBoardStep())
                 .build();
     }
 
     @Bean
-    public Step createBoardManager() throws Exception {
-        return stepBuilderFactory.get("createBoardManager")
-                .partitioner("createBoardPartitioner", createBoardPartitioner())
-                .partitionHandler(createBoardPartitionHandler())
-                .build();
-    }
-
-    @Bean
-    @StepScope
-    public Partitioner createBoardPartitioner() {
-        MultiResourcePartitioner partitioner = new MultiResourcePartitioner();
-
-        Path path = Paths.get("/Users/eric/Desktop/batch-resource");
-        Resource[] resources = FileUtils.stream(path)
-                .filter(File::isFile)
-                .filter(file -> "csv".equals(StringUtils.getFilenameExtension(file.getPath())))
-                .map(FileSystemResource::new)
-                .toArray(Resource[]::new);
-
-        partitioner.setResources(resources);
-        partitioner.partition(GRID_SIZE);
-        return partitioner;
-    }
-
-    @Bean
-    public ThreadPoolTaskExecutor createBoardTaskExecutor() {
-        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
-        taskExecutor.setCorePoolSize(POOL_SIZE);
-        taskExecutor.setMaxPoolSize(POOL_SIZE);
-        taskExecutor.setWaitForTasksToCompleteOnShutdown(true);
-        taskExecutor.initialize();
-        return taskExecutor;
-    }
-
-    @Bean
-    public TaskExecutorPartitionHandler createBoardPartitionHandler() throws Exception {
-
-        TaskExecutorPartitionHandler partitionHandler = new TaskExecutorPartitionHandler();
-        partitionHandler.setStep(createBoardWorker()); // worker가 세팅된다. => 파일을 읽어서 데이터를 처리하는 부분
-        partitionHandler.setGridSize(GRID_SIZE);
-        partitionHandler.setTaskExecutor(createBoardTaskExecutor());
-        return partitionHandler;
-    }
-
-    @Bean
-    public Step createBoardWorker() throws Exception {
-        return stepBuilderFactory.get("createBoardWorker")
+    public Step createBoardStep() {
+        return stepBuilderFactory.get("createBoardStep")
                 .<BoardModel, Board>chunk(CHUNK_SIZE)
-                .reader(createBoardReader(null))
+                .reader(createBoardReader())
                 .processor(createBoardProcessor())
                 .writer(createBoardWriter())
                 .build();
     }
 
     @Bean
-    @StepScope
-    public FlatFileItemReader<BoardModel> createBoardReader(@Value("#{stepExecutionContext[fileName]}") String fileName) throws Exception {
+    public FlatFileItemReader<BoardModel> createBoardReader() {
         return new FlatFileItemReaderBuilder<BoardModel>()
                 .name("createBoardReader")
-                .resource(new UrlResource(fileName))
+                .resource(new ClassPathResource("Boards.csv"))
                 .delimited()
                 .names("title", "content")
                 .fieldSetMapper(new BeanWrapperFieldSetMapper<>())
@@ -127,23 +74,30 @@ public class CreateBoardJobConfig {
                 .build();
     }
 
+    @Bean
     public ItemProcessor<BoardModel, Board> createBoardProcessor() {
-        LocalDateTime now = LocalDateTime.now();
         return boardModel -> Board.builder()
                 .title(boardModel.getTitle())
                 .content(boardModel.getContent())
-                .createdAt(now)
                 .build();
     }
 
+    @Bean
     public ItemWriter<Board> createBoardWriter() {
         return boards -> demoJdbcTemplate.batchUpdate("insert into Board (title, content, createdAt) values (?, ?, ?)",
                 boards,
-                CHUNK_SIZE,
-                (ps, board) -> {
+                10,
+                ((ps, board) -> {
                     ps.setObject(1, board.getTitle());
                     ps.setObject(2, board.getContent());
-                    ps.setObject(3, board.getCreatedAt());
-                });
+                    ps.setObject(3, LocalDateTime.now());
+                }));
     }
+//    // Jdbc 같은 경우는 dataSource를 사용
+//    @Bean
+//    public ItemWriter<Board> writerByJdbc() {
+//        return new JdbcBatchItemWriterBuilder<Board>()
+//                .dataSource(this.demoDataSource)
+//                .build();
+//    }
 }

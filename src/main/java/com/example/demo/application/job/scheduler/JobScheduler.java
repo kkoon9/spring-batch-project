@@ -14,11 +14,20 @@ import java.util.Date;
 public class JobScheduler {
 
     private final Job createArticleJob;
+    private final Job createBoardJob;
     private final JobLauncher jobLauncher;
 
     @Scheduled(fixedDelay = 60000) // 1분
     public void createArticleJob() throws Exception {
         jobLauncher.run(createArticleJob, new JobParametersBuilder()
+                .addDate("date", new Date())
+                .toJobParameters()
+        );
+    }
+
+    @Scheduled(fixedDelay = 120000) // 1분
+    public void createBoardJob() throws Exception {
+        jobLauncher.run(createBoardJob, new JobParametersBuilder()
                 .addDate("date", new Date())
                 .toJobParameters()
         );
