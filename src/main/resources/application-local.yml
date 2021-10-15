@@ -5,16 +5,16 @@ spring:
         jdbc-url: jdbc:mysql://host/batch
         driver-class-name: com.mysql.cj.jdbc.Driver
         username: root
-        password: wlffjt1akf
+        password: password
       demo:
-        jdbc-url: jdbc:mysql://host/demo
+        jdbc-url: jdbc:mysql://host/demo?rewriteBatchedStatements=true
         driver-class-name: com.mysql.cj.jdbc.Driver
-        username: name
-        password: pw
+        username: root
+        password: password
   batch:
     initialize-schema: always
     job:
-      names: ${job.names:createBoardJob}
+      names: ${job.names:createArticleJob}
   jpa:
     generate-ddl: true
     hibernate:

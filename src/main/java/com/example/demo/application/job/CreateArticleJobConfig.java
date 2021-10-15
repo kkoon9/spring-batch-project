@@ -76,11 +76,9 @@ public class CreateArticleJobConfig {
 
     @Bean
     public ItemProcessor<ArticleModel, Article> createArticleProcessor() {
-        LocalDateTime now = LocalDateTime.now();
         return articleModel -> Article.builder()
                 .title(articleModel.getTitle())
                 .content(articleModel.getContent())
-                .createdAt(now)
                 .build();
     }
 
@@ -92,7 +90,7 @@ public class CreateArticleJobConfig {
                 ((ps, article) -> {
                     ps.setObject(1, article.getTitle());
                     ps.setObject(2, article.getContent());
-                    ps.setObject(3, article.getCreatedAt());
+                    ps.setObject(3, LocalDateTime.now());
                 }));
     }
 
